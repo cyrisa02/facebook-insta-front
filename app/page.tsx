@@ -73,8 +73,18 @@ export default function Home() {
   }
 
   async function copy(text: string, label: string) {
-    await navigator.clipboard.writeText(text);
-    toast.success(`Texte ${label} copié !`);
+    try {
+      // 1. On attend que la copie soit terminée
+      await navigator.clipboard.writeText(text);
+      // 2. On affiche le succès SEULEMENT après
+      toast.success(`Texte ${label} copié !`);
+    } catch (err) {
+      // 3. En cas d'échec (ex: permission refusée), on affiche une erreur
+      toast.error(
+        "Impossible de copier automatiquement. Veuillez sélectionner le texte manuellement.",
+      );
+      console.error("Erreur de copie:", err);
+    }
   }
 
   return (
