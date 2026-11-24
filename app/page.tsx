@@ -73,20 +73,49 @@ export default function Home() {
   }
 
   async function copy(text: string, label: string) {
+    // Méthode 1 : L'API moderne (idéale sur PC et HTTPS)
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(text);
+        toast.success(`Texte ${label} copié !`);
+        return; // Si ça marche, on s'arrête là
+      } catch (err) {
+        console.warn(
+          "La copie moderne a échoué, on tente l'ancienne méthode.",
+          err,
+        );
+        // On ne fait rien, on passe à la méthode 2
+      }
+    }
+
+    // Méthode 2 : L'ancienne méthode (le "filet de sécurité" pour mobile)
     try {
-      // 1. On attend que la copie soit terminée
-      await navigator.clipboard.writeText(text);
-      // 2. On affiche le succès SEULEMENT après
-      toast.success(`Texte ${label} copié !`);
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+
+      // On cache l'élément pour ne pas perturber l'affichage
+      textArea.style.position = "fixed";
+      textArea.style.left = "-9999px";
+      textArea.style.top = "0";
+      textArea.setAttribute("readonly", ""); // Empêche le clavier de s'ouvrir sur iOS/Android
+
+      document.body.appendChild(textArea);
+      textArea.select();
+      textArea.setSelectionRange(0, 99999); // Pour les mobiles
+
+      const successful = document.execCommand("copy");
+      document.body.removeChild(textArea);
+
+      if (successful) {
+        toast.success(`Texte ${label} copié !`);
+      } else {
+        toast.error("Copie impossible. Sélectionnez le texte manuellement.");
+      }
     } catch (err) {
-      // 3. En cas d'échec (ex: permission refusée), on affiche une erreur
-      toast.error(
-        "Impossible de copier automatiquement. Veuillez sélectionner le texte manuellement.",
-      );
-      console.error("Erreur de copie:", err);
+      toast.error("Copie impossible. Sélectionnez le texte manuellement.");
+      console.error("Erreur de copie finale:", err);
     }
   }
-
   return (
     <main className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-3xl space-y-8">
