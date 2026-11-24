@@ -17,37 +17,28 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
 
-  // Gestion propre des URL d'aperçu pour éviter les fuites de mémoire
   useEffect(() => {
     const urls = files.map((file) => URL.createObjectURL(file));
     setPreviewUrls(urls);
     return () => urls.forEach((url) => URL.revokeObjectURL(url));
   }, [files]);
 
-  // Ajout d'une photo à la liste existante
   function onSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = Array.from(e.target.files ?? []);
-
     if (selected.length > 0) {
-      // On limite le total à 4 photos
       const newFiles = [...files, ...selected].slice(0, 4);
       setFiles(newFiles);
-
       if (files.length + selected.length > 4) {
         toast.warning("Limite de 4 photos atteinte.");
       }
     }
-
-    // On réinitialise l'input pour pouvoir reprendre la même photo si besoin
     e.target.value = "";
   }
 
-  // Supprimer une photo spécifique
   function removeFile(indexToRemove: number) {
     setFiles(files.filter((_, index) => index !== indexToRemove));
   }
 
-  // Tout effacer
   function clearAll() {
     setFiles([]);
     setResult(null);
@@ -71,9 +62,7 @@ export default function Home() {
       setResult(data);
       toast.success("Textes générés !");
     } catch (err) {
-      toast.error(
-        "Erreur lors de la génération. Le serveur est peut-être en train de démarrer.",
-      );
+      toast.error("Erreur. Le serveur est peut-être en train de démarrer.");
       console.error(err);
     } finally {
       setLoading(false);
@@ -81,79 +70,70 @@ export default function Home() {
   }
 
   async function copy(text: string, label: string) {
-    // Méthode 1 : L'API moderne (idéale sur PC et HTTPS)
     if (navigator.clipboard && window.isSecureContext) {
       try {
         await navigator.clipboard.writeText(text);
         toast.success(`Texte ${label} copié !`);
-        return; // Si ça marche, on s'arrête là
+        return;
       } catch (err) {
-        console.warn(
-          "La copie moderne a échoué, on tente l'ancienne méthode.",
-          err,
-        );
+        console.warn("La copie moderne a échoué.", err);
       }
     }
-
-    // Méthode 2 : L'ancienne méthode (le "filet de sécurité" pour mobile)
     try {
       const textArea = document.createElement("textarea");
       textArea.value = text;
-
       textArea.style.position = "fixed";
       textArea.style.left = "-9999px";
       textArea.style.top = "0";
       textArea.setAttribute("readonly", "");
-
       document.body.appendChild(textArea);
       textArea.select();
       textArea.setSelectionRange(0, 99999);
-
       const successful = document.execCommand("copy");
       document.body.removeChild(textArea);
-
-      if (successful) {
-        toast.success(`Texte ${label} copié !`);
-      } else {
-        toast.error("Copie impossible. Sélectionnez le texte manuellement.");
-      }
+      if (successful) toast.success(`Texte ${label} copié !`);
+      else toast.error("Copie impossible.");
     } catch (err) {
-      toast.error("Copie impossible. Sélectionnez le texte manuellement.");
-      console.error("Erreur de copie finale:", err);
+      toast.error("Copie impossible.");
     }
   }
 
-  // --- NOUVELLE FONCTION : Téléchargement des photos ---
-  async function downloadImages() {
-    if (!result || !result.images) return;
+  // --- NOUVELLE FONCTION : PARTAGE NATIF ---
+  async function shareImage(url: string, index: number) {
+    const imageUrl = `${API_URL}${url}`;
 
-    toast.info("Téléchargement des photos en cours...");
+    try {
+      // On récupère l'image pour la convertir en fichier
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const file = new File([blob], `reparation-siege-${index + 1}.jpg`, {
+        type: blob.type,
+      });
 
-    // On boucle sur chaque photo
-    for (let i = 0; i < result.images.length; i++) {
-      const imageUrl = `${API_URL}${result.images[i]}`;
-      try {
-        // On crée un lien temporaire pour forcer le téléchargement
-        const link = document.createElement("a");
-        link.href = imageUrl;
-        // L'attribut download demande au navigateur de télécharger au lieu d'ouvrir
-        link.download = `reparation-siege-${i + 1}.jpg`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        // Petite pause entre chaque téléchargement (500ms) pour que le téléphone suive
-        await new Promise((resolve) => setTimeout(resolve, 500));
-      } catch (error) {
-        console.error("Erreur de téléchargement pour", imageUrl, error);
+      // On vérifie si le téléphone supporte le partage de fichiers
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: "Photo de réparation",
+          text: "Voici la photo de la réparation.",
+        });
+      } else {
+        // Si le partage n'est pas supporté, on ouvre l'image
+        toast.info(
+          "Le partage n'est pas supporté. Faites un appui long sur l'image pour l'enregistrer.",
+        );
+        window.open(imageUrl, "_blank");
       }
+    } catch (err) {
+      console.error("Erreur de partage:", err);
+      toast.error("Impossible de partager. Faites un appui long sur l'image.");
+      window.open(imageUrl, "_blank");
     }
   }
 
   return (
     <main className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-3xl space-y-8">
-        {/* En-tête */}
         <div className="text-center">
           <h1 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
             Atelier Sellerie AI - Développé par AlicIA-GPT
@@ -164,7 +144,6 @@ export default function Home() {
           </p>
         </div>
 
-        {/* Zone de sélection / Ajout de photos */}
         <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
           {files.length < 4 ? (
             <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
@@ -197,7 +176,6 @@ export default function Home() {
                 </p>
                 <p className="text-xs text-gray-500">{files.length}/4 photos</p>
               </div>
-              {/* capture="environment" ouvre directement l'appareil photo arrière sur mobile */}
               <input
                 type="file"
                 accept="image/*"
@@ -212,7 +190,6 @@ export default function Home() {
             </div>
           )}
 
-          {/* Aperçu des photos sélectionnées */}
           {files.length > 0 && (
             <div className="mt-6">
               <div className="flex items-center justify-between mb-3">
@@ -236,8 +213,7 @@ export default function Home() {
                     />
                     <button
                       onClick={() => removeFile(i)}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 w-5 h-5 flex items-center justify-center text-xs shadow-md opacity-100 transition-opacity"
-                      title="Supprimer"
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 w-5 h-5 flex items-center justify-center text-xs shadow-md opacity-100"
                     >
                       ✕
                     </button>
@@ -282,20 +258,18 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Résultats */}
         {result && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* --- BOUTONS DE TÉLÉCHARGEMENT INDIVIDUELS --- */}
-            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4">
-              <p className="text-sm text-blue-800 mb-3 text-center">
-                Cliquez sur une photo pour la télécharger dans votre galerie.
+            {/* NOUVEAU BLOC : PARTAGE DES PHOTOS */}
+            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-center">
+              <p className="text-sm text-blue-800 mb-3 font-medium">
+                1. Enregistrez vos photos pour les avoir dans votre galerie.
               </p>
               <div className="flex flex-wrap gap-2 justify-center">
                 {result.images.map((url, i) => (
-                  <a
+                  <button
                     key={i}
-                    href={`${API_URL}${url}`}
-                    download={`reparation-siege-${i + 1}.jpg`}
+                    onClick={() => shareImage(url, i)}
                     className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors"
                   >
                     <svg
@@ -313,12 +287,15 @@ export default function Home() {
                       ></path>
                     </svg>
                     Photo {i + 1}
-                  </a>
+                  </button>
                 ))}
               </div>
+              <p className="text-xs text-blue-600 mt-3">
+                Astuce : Si rien ne se passe, faites un appui long sur l'image
+                qui s'ouvre pour l'enregistrer.
+              </p>
             </div>
 
-            {/* Carte Facebook */}
             <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-[#1877F2]">Facebook</h2>
@@ -334,7 +311,6 @@ export default function Home() {
               </button>
             </section>
 
-            {/* Carte Instagram */}
             <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-[#E1306C]">Instagram</h2>
