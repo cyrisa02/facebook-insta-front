@@ -58,11 +58,11 @@ export default function Home() {
         {/* En-tête */}
         <div className="text-center">
           <h1 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
-            Atelier Seats AI
+            Atelier Sellerie AI
           </h1>
           <p className="mt-3 text-lg text-gray-600">
-            Prends 3-4 photos de ta réparation, l'IA rédige tes posts Facebook
-            et Instagram.
+            Prends 3 photos maximum de ta réparation, l'IA rédige tes posts
+            Facebook et Instagram.
           </p>
         </div>
 
@@ -101,7 +101,24 @@ export default function Home() {
               className="hidden"
             />
           </label>
-
+          {/* Ajoutez ce bloc juste avant le bouton "Générer" */}
+          {files.length > 0 && (
+            <div className="mt-6 flex gap-3 overflow-x-auto pb-2">
+              {files.map((file, i) => {
+                // Création d'une URL temporaire locale pour l'aperçu
+                const previewUrl = URL.createObjectURL(file);
+                return (
+                  <img
+                    key={i}
+                    src={previewUrl}
+                    alt={`Aperçu ${i + 1}`}
+                    className="h-24 w-24 flex-shrink-0 rounded-xl object-cover shadow-sm ring-1 ring-gray-200"
+                    onLoad={() => URL.revokeObjectURL(previewUrl)} // Libère la mémoire une fois chargé
+                  />
+                );
+              })}
+            </div>
+          )}
           <button
             onClick={generate}
             disabled={loading}
