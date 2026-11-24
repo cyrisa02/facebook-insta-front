@@ -285,32 +285,37 @@ export default function Home() {
         {/* Résultats */}
         {result && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* --- BOUTON DE TÉLÉCHARGEMENT DES PHOTOS (Option C) --- */}
-            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-center">
-              <p className="text-sm text-blue-800 mb-3">
-                Vos textes sont prêts ! Téléchargez d'abord vos photos pour les
-                avoir dans votre galerie.
+            {/* --- BOUTONS DE TÉLÉCHARGEMENT INDIVIDUELS --- */}
+            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4">
+              <p className="text-sm text-blue-800 mb-3 text-center">
+                Cliquez sur une photo pour la télécharger dans votre galerie.
               </p>
-              <button
-                onClick={downloadImages}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                  ></path>
-                </svg>
-                Télécharger les photos
-              </button>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {result.images.map((url, i) => (
+                  <a
+                    key={i}
+                    href={`${API_URL}${url}`}
+                    download={`reparation-siege-${i + 1}.jpg`}
+                    className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                      ></path>
+                    </svg>
+                    Photo {i + 1}
+                  </a>
+                ))}
+              </div>
             </div>
 
             {/* Carte Facebook */}
