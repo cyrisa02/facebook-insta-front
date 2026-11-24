@@ -98,19 +98,15 @@ export default function Home() {
     }
   }
 
-  // --- NOUVELLE FONCTION : PARTAGE NATIF ---
   async function shareImage(url: string, index: number) {
     const imageUrl = `${API_URL}${url}`;
-
     try {
-      // On récupère l'image pour la convertir en fichier
       const response = await fetch(imageUrl);
       const blob = await response.blob();
       const file = new File([blob], `reparation-siege-${index + 1}.jpg`, {
         type: blob.type,
       });
 
-      // On vérifie si le téléphone supporte le partage de fichiers
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
           files: [file],
@@ -118,7 +114,6 @@ export default function Home() {
           text: "Voici la photo de la réparation.",
         });
       } else {
-        // Si le partage n'est pas supporté, on ouvre l'image
         toast.info(
           "Le partage n'est pas supporté. Faites un appui long sur l'image pour l'enregistrer.",
         );
@@ -260,10 +255,42 @@ export default function Home() {
 
         {result && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* NOUVEAU BLOC : PARTAGE DES PHOTOS */}
+            {/* CARTE FACEBOOK */}
+            <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-[#1877F2]">Facebook</h2>
+              </div>
+              <p className="whitespace-pre-wrap text-gray-700 text-sm leading-relaxed mb-6">
+                {result.facebook}
+              </p>
+              <button
+                onClick={() => copy(result.facebook, "Facebook")}
+                className="w-full sm:w-auto rounded-lg bg-[#1877F2] px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#166fe5] transition-colors"
+              >
+                Copier puis ouvrer Facebook
+              </button>
+            </section>
+
+            {/* CARTE INSTAGRAM */}
+            <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-[#E1306C]">Instagram</h2>
+              </div>
+              <p className="whitespace-pre-wrap text-gray-700 text-sm leading-relaxed mb-6">
+                {result.instagram}
+              </p>
+              <button
+                onClick={() => copy(result.instagram, "Instagram")}
+                className="w-full sm:w-auto rounded-lg bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F56040] px-5 py-3 text-sm font-semibold text-white shadow-sm hover:opacity-90 transition-opacity"
+              >
+                Copier puis ouvrer Instagram
+              </button>
+            </section>
+
+            {/* BLOC DE PARTAGE DES PHOTOS (Déplacé tout en bas) */}
             <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-center">
               <p className="text-sm text-blue-800 mb-3 font-medium">
-                1. Enregistrez vos photos pour les avoir dans votre galerie.
+                3. Enregistrez vos photos pour les joindre à votre post.
               </p>
               <div className="flex flex-wrap gap-2 justify-center">
                 {result.images.map((url, i) => (
@@ -295,36 +322,6 @@ export default function Home() {
                 qui s'ouvre pour l'enregistrer.
               </p>
             </div>
-
-            <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-[#1877F2]">Facebook</h2>
-              </div>
-              <p className="whitespace-pre-wrap text-gray-700 text-sm leading-relaxed mb-6">
-                {result.facebook}
-              </p>
-              <button
-                onClick={() => copy(result.facebook, "Facebook")}
-                className="w-full sm:w-auto rounded-lg bg-[#1877F2] px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#166fe5] transition-colors"
-              >
-                Copier puis ouvrer Facebook
-              </button>
-            </section>
-
-            <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-[#E1306C]">Instagram</h2>
-              </div>
-              <p className="whitespace-pre-wrap text-gray-700 text-sm leading-relaxed mb-6">
-                {result.instagram}
-              </p>
-              <button
-                onClick={() => copy(result.instagram, "Instagram")}
-                className="w-full sm:w-auto rounded-lg bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F56040] px-5 py-3 text-sm font-semibold text-white shadow-sm hover:opacity-90 transition-opacity"
-              >
-                Copier puis ouvrer Instagram
-              </button>
-            </section>
           </div>
         )}
       </div>
