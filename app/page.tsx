@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -13,8 +13,16 @@ type Result = {
 
 export default function Home() {
   const [files, setFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
+
+  // Gestion propre des URL d'aperçu pour éviter les fuites de mémoire
+  useEffect(() => {
+    const urls = files.map((file) => URL.createObjectURL(file));
+    setPreviewUrls(urls);
+    return () => urls.forEach((url) => URL.revokeObjectURL(url));
+  }, [files]);
 
   // Ajout d'une photo à la liste existante
   function onSelect(e: React.ChangeEvent<HTMLInputElement>) {
@@ -84,7 +92,6 @@ export default function Home() {
           "La copie moderne a échoué, on tente l'ancienne méthode.",
           err,
         );
-        // On ne fait rien, on passe à la méthode 2
       }
     }
 
@@ -93,15 +100,14 @@ export default function Home() {
       const textArea = document.createElement("textarea");
       textArea.value = text;
 
-      // On cache l'élément pour ne pas perturber l'affichage
       textArea.style.position = "fixed";
       textArea.style.left = "-9999px";
       textArea.style.top = "0";
-      textArea.setAttribute("readonly", ""); // Empêche le clavier de s'ouvrir sur iOS/Android
+      textArea.setAttribute("readonly", "");
 
       document.body.appendChild(textArea);
       textArea.select();
-      textArea.setSelectionRange(0, 99999); // Pour les mobiles
+      textArea.setSelectionRange(0, 99999);
 
       const successful = document.execCommand("copy");
       document.body.removeChild(textArea);
@@ -116,17 +122,45 @@ export default function Home() {
       console.error("Erreur de copie finale:", err);
     }
   }
+
+  // --- NOUVELLE FONCTION : Téléchargement des photos ---
+  async function downloadImages() {
+    if (!result || !result.images) return;
+
+    toast.info("Téléchargement des photos en cours...");
+
+    // On boucle sur chaque photo
+    for (let i = 0; i < result.images.length; i++) {
+      const imageUrl = `${API_URL}${result.images[i]}`;
+      try {
+        // On crée un lien temporaire pour forcer le téléchargement
+        const link = document.createElement("a");
+        link.href = imageUrl;
+        // L'attribut download demande au navigateur de télécharger au lieu d'ouvrir
+        link.download = `reparation-siege-${i + 1}.jpg`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        // Petite pause entre chaque téléchargement (500ms) pour que le téléphone suive
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      } catch (error) {
+        console.error("Erreur de téléchargement pour", imageUrl, error);
+      }
+    }
+  }
+
   return (
     <main className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-3xl space-y-8">
         {/* En-tête */}
         <div className="text-center">
           <h1 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
-            Atelier Seats AI
+            Atelier Sellerie AI - Développé par AlicIA-GPT
           </h1>
           <p className="mt-3 text-lg text-gray-600">
-            Prends 3-4 photos de ta réparation, l'IA rédige tes posts Facebook
-            et Instagram.
+            Prends 3 photos maximum de ta réparation, l'IA rédige tes posts
+            Facebook et Instagram.
           </p>
         </div>
 
@@ -193,10 +227,10 @@ export default function Home() {
                 </button>
               </div>
               <div className="flex gap-3 overflow-x-auto pb-2">
-                {files.map((file, i) => (
+                {previewUrls.map((url, i) => (
                   <div key={i} className="relative group flex-shrink-0">
                     <img
-                      src={URL.createObjectURL(file)}
+                      src={url}
                       alt={`Aperçu ${i + 1}`}
                       className="h-20 w-20 rounded-lg object-cover shadow-sm ring-1 ring-gray-200"
                     />
@@ -251,6 +285,34 @@ export default function Home() {
         {/* Résultats */}
         {result && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* --- BOUTON DE TÉLÉCHARGEMENT DES PHOTOS (Option C) --- */}
+            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-center">
+              <p className="text-sm text-blue-800 mb-3">
+                Vos textes sont prêts ! Téléchargez d'abord vos photos pour les
+                avoir dans votre galerie.
+              </p>
+              <button
+                onClick={downloadImages}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                  ></path>
+                </svg>
+                Télécharger les photos
+              </button>
+            </div>
+
             {/* Carte Facebook */}
             <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
               <div className="flex items-center justify-between mb-4">
@@ -263,7 +325,7 @@ export default function Home() {
                 onClick={() => copy(result.facebook, "Facebook")}
                 className="w-full sm:w-auto rounded-lg bg-[#1877F2] px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#166fe5] transition-colors"
               >
-                Copier pour Facebook
+                Copier puis ouvrer Facebook
               </button>
             </section>
 
@@ -279,7 +341,7 @@ export default function Home() {
                 onClick={() => copy(result.instagram, "Instagram")}
                 className="w-full sm:w-auto rounded-lg bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F56040] px-5 py-3 text-sm font-semibold text-white shadow-sm hover:opacity-90 transition-opacity"
               >
-                Copier pour Instagram
+                Copier puis ouvrer Instagram
               </button>
             </section>
           </div>
